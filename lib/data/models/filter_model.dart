@@ -5,7 +5,7 @@ class FilterModel {
   int? minPrice;
   int? maxPrice;
   String? gender;
-  double? minRating;
+  int? minRating; // Artık int olarak kullanıyoruz
 
   FilterModel({
     this.city,
@@ -16,6 +16,7 @@ class FilterModel {
     this.gender,
     this.minRating,
   });
+
   FilterModel copyWith({
     String? city,
     String? district,
@@ -23,7 +24,7 @@ class FilterModel {
     int? minPrice,
     int? maxPrice,
     String? gender,
-    double? minRating,
+    int? minRating,
   }) {
     return FilterModel(
       city: city ?? this.city,

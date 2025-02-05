@@ -17,17 +17,39 @@ class _FilterScreenState extends State<FilterScreen> {
   late FilterModel _localFilter;
 
   final List<String> _genders = ['Erkek', 'Kadın', 'Farketmez'];
-  final List<double> _ratings = [5.0, 6.0, 7.0, 8.0, 9.0];
+  final List<int> _ratings = [5, 6, 7, 8, 9, 10];
 
-  // FilterScreen'de initState'ı güncelleyin
+  // TextEditingController'lar ile fiyat alanlarının önceki değerlerini göstereceğiz
+  late TextEditingController _minPriceController;
+  late TextEditingController _maxPriceController;
+
   @override
   void initState() {
     super.initState();
+    // Mevcut filtre değerlerini kopyalıyoruz
     _localFilter = _adsController.currentFilter.value.copyWith();
+
+    // Text controller'ları, _localFilter'daki mevcut değerlerle başlatıyoruz.
+    _minPriceController = TextEditingController(
+      text: _localFilter.minPrice?.toString() ?? '',
+    );
+    _maxPriceController = TextEditingController(
+      text: _localFilter.maxPrice?.toString() ?? '',
+    );
   }
 
-// Uygula butonu işlevi
+  @override
+  void dispose() {
+    _minPriceController.dispose();
+    _maxPriceController.dispose();
+    super.dispose();
+  }
+
+  // Uygula butonu işlevi
   void _applyFilters() {
+    // Fiyat alanlarını TextEditingController'lardan güncelliyoruz.
+    _localFilter.minPrice = int.tryParse(_minPriceController.text);
+    _localFilter.maxPrice = int.tryParse(_maxPriceController.text);
     _adsController.updateFilter(_localFilter);
     Get.back();
   }
@@ -146,6 +168,7 @@ class _FilterScreenState extends State<FilterScreen> {
               children: [
                 Expanded(
                   child: TextFormField(
+                    controller: _minPriceController,
                     decoration: InputDecoration(
                       labelText: 'Min TL',
                       border: OutlineInputBorder(
@@ -153,14 +176,16 @@ class _FilterScreenState extends State<FilterScreen> {
                       ),
                     ),
                     keyboardType: TextInputType.number,
-                    onChanged: (value) => setState(
-                      () => _localFilter.minPrice = int.tryParse(value),
-                    ),
+                    onChanged: (value) {
+                      // Değişiklik yapıldığında _localFilter'i güncelliyoruz.
+                      _localFilter.minPrice = int.tryParse(value);
+                    },
                   ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
                   child: TextFormField(
+                    controller: _maxPriceController,
                     decoration: InputDecoration(
                       labelText: 'Max TL',
                       border: OutlineInputBorder(
@@ -168,9 +193,9 @@ class _FilterScreenState extends State<FilterScreen> {
                       ),
                     ),
                     keyboardType: TextInputType.number,
-                    onChanged: (value) => setState(
-                      () => _localFilter.maxPrice = int.tryParse(value),
-                    ),
+                    onChanged: (value) {
+                      _localFilter.maxPrice = int.tryParse(value);
+                    },
                   ),
                 ),
               ],
@@ -209,7 +234,7 @@ class _FilterScreenState extends State<FilterScreen> {
       elevation: 2,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8),
-        child: DropdownButtonFormField<double>(
+        child: DropdownButtonFormField<int>(
           value: _localFilter.minRating,
           decoration: const InputDecoration(
             labelText: 'Minimum Puan',
@@ -240,7 +265,11 @@ class _FilterScreenState extends State<FilterScreen> {
         ),
       ),
       onPressed: () {
-        setState(() => _localFilter = FilterModel());
+        setState(() {
+          _localFilter = FilterModel();
+          _minPriceController.text = '';
+          _maxPriceController.text = '';
+        });
         _adsController.updateFilter(FilterModel());
       },
     );
