@@ -36,6 +36,9 @@ class AuthController extends GetxController {
       final doc = await _firestore.collection('users').doc(uid).get();
       if (doc.exists) {
         _user.value = UserModel.fromJson(doc.data()!, uid);
+
+        // Kullanıcı verileri çekildiğinde ilanları da çek
+        Get.find<AdsController>().fetchAdsBasedOnRole();
       }
     } catch (e) {
       Get.snackbar('Hata', 'Kullanıcı verileri alınamadı: ${e.toString()}');
@@ -60,6 +63,13 @@ class AuthController extends GetxController {
         backgroundColor: Colors.red[100],
       );
     }
+  }
+
+  // AuthController'a ekle
+  UserModel? getUserByIdSync(String userId) {
+    return _user.value?.uid == userId
+        ? _user.value
+        : null; // Basit bir örnek, gerçek uygulamada cache mekanizması gerekir
   }
 
   // Kayıt Ol

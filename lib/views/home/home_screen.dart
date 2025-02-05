@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:tutoring/controllers/ads_controller.dart';
 import 'package:tutoring/controllers/auth_controller.dart';
+import 'package:tutoring/views/home/filter_screen.dart';
 import 'package:tutoring/views/widgets/ad_card.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -9,12 +10,14 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // **Controller'ları GetX üzerinden al**
     final authController = Get.find<AuthController>();
     final adsController = Get.put(AdsController());
 
     return Scaffold(
       appBar: AppBar(
         title: Obx(() {
+          // **Kullanıcı adı veya hoş geldin mesajı**
           return Text(
             authController.user != null
                 ? "Hoş Geldin, ${authController.user!.firstName}!"
@@ -25,8 +28,14 @@ class HomeScreen extends StatelessWidget {
         backgroundColor: Colors.green,
         actions: [
           IconButton(
+            icon: const Icon(Icons.filter_list, color: Colors.white),
+            onPressed: () => Get.to(() => const FilterScreen()),
+          ),
+          IconButton(
             icon: const Icon(Icons.add, color: Colors.white),
-            onPressed: () {},
+            onPressed: () {
+              // **İlan ekleme işlemi burada yapılabilir**
+            },
           ),
           PopupMenuButton<String>(
             onSelected: (value) {
@@ -50,22 +59,23 @@ class HomeScreen extends StatelessWidget {
           ),
         ],
       ),
+      // body kısmını güncelleyin
       body: Obx(
         () {
-          if (adsController.adsList.isEmpty) {
-            return const Center(child: Text("Henüz bir ilan bulunmuyor"));
-          }
-
-          return ListView.builder(
-            itemCount: adsController.adsList.length,
-            itemBuilder: (context, index) {
-              final ad = adsController.adsList[index];
-
-              return AdCard(
-                ad: ad,
-                authController: authController,
-              );
-            },
+          return RefreshIndicator(
+            onRefresh: () async => await adsController.fetchAdsBasedOnRole(),
+            child: adsController.filteredAdsList.isEmpty
+                ? const Center(child: Text("Henüz bir ilan bulunmuyor"))
+                : ListView.builder(
+                    itemCount: adsController.filteredAdsList.length,
+                    itemBuilder: (context, index) {
+                      final ad = adsController.filteredAdsList[index];
+                      return AdCard(
+                        ad: ad,
+                        authController: authController,
+                      );
+                    },
+                  ),
           );
         },
       ),
