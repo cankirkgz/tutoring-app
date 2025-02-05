@@ -26,6 +26,7 @@ class AdsController extends GetxController {
   final Map<String, UserModel> studentCache = {};
 
   StreamSubscription? _subscription;
+  var isLoading = true.obs;
 
   @override
   void onInit() {
@@ -52,7 +53,14 @@ class AdsController extends GetxController {
 
   /// İlanları kullanıcı rolüne göre çekmek için public metod
   Future<void> fetchAdsBasedOnRole() async {
-    await _fetchAdsBasedOnRole();
+    isLoading.value = true; // Yükleme başladı
+    try {
+      await _fetchAdsBasedOnRole();
+    } catch (e) {
+      print("Hata: $e");
+    } finally {
+      isLoading.value = false; // Yükleme bitti
+    }
   }
 
   /// Firestore'dan ilanları çekip adsList'i günceller

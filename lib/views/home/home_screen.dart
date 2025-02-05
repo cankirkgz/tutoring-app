@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:shimmer/shimmer.dart';
 import 'package:tutoring/config/routes.dart';
 import 'package:tutoring/controllers/ads_controller.dart';
 import 'package:tutoring/controllers/auth_controller.dart';
@@ -59,26 +60,70 @@ class HomeScreen extends StatelessWidget {
           ),
         ],
       ),
-      // body kısmını güncelleyin
+      // Body kısmını güncelleyin
       body: Obx(
         () {
           return RefreshIndicator(
-            onRefresh: () async => await adsController.fetchAdsBasedOnRole(),
-            child: adsController.filteredAdsList.isEmpty
-                ? const Center(child: Text("Henüz bir ilan bulunmuyor"))
-                : ListView.builder(
-                    itemCount: adsController.filteredAdsList.length,
-                    itemBuilder: (context, index) {
-                      final ad = adsController.filteredAdsList[index];
-                      return AdCard(
-                        ad: ad,
-                        authController: authController,
-                      );
-                    },
-                  ),
+            onRefresh: () async {
+              adsController.isLoading.value = true; // Yükleme başladı
+              await Future.delayed(const Duration(seconds: 2));
+              await adsController.fetchAdsBasedOnRole();
+            },
+            child: adsController.isLoading.value
+                ? _buildShimmerEffect()
+                : adsController.filteredAdsList.isEmpty
+                    ? Center(child: _buildShimmerEffect())
+                    : ListView.builder(
+                        itemCount: adsController.filteredAdsList.length,
+                        itemBuilder: (context, index) {
+                          final ad = adsController.filteredAdsList[index];
+                          return AdCard(
+                            ad: ad,
+                            authController: authController,
+                          );
+                        },
+                      ),
           );
         },
       ),
+    );
+  }
+
+  // Shimmer efekti widget'ı
+  Widget _buildShimmerEffect() {
+    return ListView.builder(
+      itemCount: 10, // Örnek olarak 10 shimmer efekti göster
+      itemBuilder: (context, index) {
+        return Shimmer.fromColors(
+          baseColor: Colors.grey[300]!,
+          highlightColor: Colors.grey[100]!,
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: double.infinity,
+                  height: 100.0,
+                  color: Colors.white,
+                ),
+                const SizedBox(height: 8.0),
+                Container(
+                  width: double.infinity,
+                  height: 20.0,
+                  color: Colors.white,
+                ),
+                const SizedBox(height: 8.0),
+                Container(
+                  width: 150.0,
+                  height: 20.0,
+                  color: Colors.white,
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
