@@ -1,33 +1,32 @@
-// widgets/city_picker.dart
 import 'package:flutter/material.dart';
-import 'package:tutoring/constants/cities.dart';
+import 'package:tutoring/constants/subjects.dart';
 
-class CityPicker extends StatefulWidget {
-  final Function(String) onCitySelected;
-  final String? initialCity;
+class SubjectPicker extends StatefulWidget {
+  final Function(String) onSubectSelected;
+  final String? initialSubject;
 
-  const CityPicker({
+  const SubjectPicker({
     super.key,
-    required this.onCitySelected,
-    this.initialCity,
+    required this.onSubectSelected,
+    this.initialSubject,
   });
 
   @override
-  _CityPickerState createState() => _CityPickerState();
+  _SubjectPickerState createState() => _SubjectPickerState();
 }
 
-class _CityPickerState extends State<CityPicker> {
-  final List<String> cities = Cities.allCities;
+class _SubjectPickerState extends State<SubjectPicker> {
+  final List<String> subects = Subjects.allSubjects;
 
-  String? _selectedCity;
+  String? _selectedSubject;
 
   @override
   void initState() {
     super.initState();
-    _selectedCity = widget.initialCity;
+    _selectedSubject = widget.initialSubject;
   }
 
-  void _showCityPicker(BuildContext context) {
+  void _showSubjectPicker(BuildContext context) {
     showModalBottomSheet(
       context: context,
       builder: (context) {
@@ -37,7 +36,7 @@ class _CityPickerState extends State<CityPicker> {
           child: Column(
             children: [
               Text(
-                'Şehir Seçin',
+                'Konu Seçin',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -46,15 +45,15 @@ class _CityPickerState extends State<CityPicker> {
               SizedBox(height: 10),
               Expanded(
                 child: ListView.builder(
-                  itemCount: cities.length,
+                  itemCount: subects.length,
                   itemBuilder: (context, index) {
                     return ListTile(
-                      title: Text(cities[index]),
+                      title: Text(subects[index]),
                       onTap: () {
                         setState(() {
-                          _selectedCity = cities[index];
+                          _selectedSubject = subects[index];
                         });
-                        widget.onCitySelected(cities[index]);
+                        widget.onSubectSelected(subects[index]);
                         Navigator.pop(context);
                       },
                     );
@@ -73,7 +72,7 @@ class _CityPickerState extends State<CityPicker> {
     return Column(
       children: [
         GestureDetector(
-          onTap: () => _showCityPicker(context),
+          onTap: () => _showSubjectPicker(context),
           child: Container(
             padding: EdgeInsets.symmetric(vertical: 16, horizontal: 20),
             decoration: BoxDecoration(
@@ -85,9 +84,10 @@ class _CityPickerState extends State<CityPicker> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  _selectedCity ?? 'Şehir Seçiniz',
+                  _selectedSubject ?? 'Konu Seçiniz',
                   style: TextStyle(
-                    color: _selectedCity == null ? Colors.grey : Colors.black,
+                    color:
+                        _selectedSubject == null ? Colors.grey : Colors.black,
                   ),
                 ),
                 Icon(Icons.arrow_drop_down, color: Colors.grey),

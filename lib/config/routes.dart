@@ -8,4 +8,5 @@ class Routes {
   static const profileCompletion = "/profile-completion";
   static const home = "/home";
   static const adDetail = "/ad-detail";
+  static const postAd = "/post-ad";
 }

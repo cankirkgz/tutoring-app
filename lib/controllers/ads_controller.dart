@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:tutoring/config/routes.dart';
 import 'package:tutoring/controllers/auth_controller.dart';
 import 'package:tutoring/data/models/student_request_model.dart';
 import 'package:tutoring/data/models/teacher_ad_model.dart';
@@ -18,9 +20,9 @@ class AdsController extends GetxController {
   // Mevcut filtreleme durumu
   var currentFilter = FilterModel().obs;
 
-  // Öğretmen ilanları için: ilanı paylaşan öğretmenin bilgilerini cache’le
+  // Öğretmen ilanları için: ilanı paylaşan öğretmenin bilgilerini cache'le
   final Map<String, UserModel> teacherCache = {};
-  // Öğrenci talepleri için: ilanı paylaşan öğrencinin bilgilerini cache’le
+  // Öğrenci talepleri için: ilanı paylaşan öğrencinin bilgilerini cache'le
   final Map<String, UserModel> studentCache = {};
 
   StreamSubscription? _subscription;
@@ -62,7 +64,12 @@ class AdsController extends GetxController {
     print("📢 Firestore koleksiyon adı: $collectionName");
 
     try {
-      _subscription = _firestore.collection(collectionName).snapshots().listen(
+      _subscription = _firestore
+          .collection(collectionName)
+          .orderBy('createdAt',
+              descending: true) // En güncelden en eskiye sırala
+          .snapshots()
+          .listen(
         (snapshot) async {
           print(
               "🔍 Firestore'dan veri çekildi: ${snapshot.docs.length} döküman");
@@ -223,6 +230,39 @@ class AdsController extends GetxController {
 
     filteredAdsList.value = filtered;
     print("✅ Filtre sonrası liste uzunluğu: ${filteredAdsList.length}");
+  }
+
+  /// İlanı Firestore'a ekler (öğretmen veya öğrenci rolüne göre)
+  Future<void> addAd(Map<String, dynamic> adData) async {
+    try {
+      // Kullanıcının rolüne göre koleksiyon belirle
+      final String collectionName =
+          _authController.isTeacher ? "teacher_ads" : "student_requests";
+
+      // İlan verisine kullanıcı ID'sini ve oluşturulma tarihini ekle
+      adData['createdAt'] = Timestamp.now();
+
+      // Firestore'a ilanı ekle
+      await _firestore.collection(collectionName).add(adData);
+
+      // Başarılı mesajı göster
+      Get.snackbar(
+        'Başarılı',
+        'İlan başarıyla eklendi!',
+        backgroundColor: Colors.green[100],
+      );
+
+      // İlan eklendikten sonra ana sayfaya yönlendir
+      Get.offAllNamed(Routes.home); // Yönlendirme burada yapılıyor
+    } catch (e) {
+      // Hata mesajı göster
+      Get.snackbar(
+        'Hata',
+        'İlan eklenirken bir hata oluştu: $e',
+        backgroundColor: Colors.red[100],
+      );
+      print("❌ İlan eklenirken hata: $e");
+    }
   }
 
   /// Filtreleri güncelle ve yeniden uygula
