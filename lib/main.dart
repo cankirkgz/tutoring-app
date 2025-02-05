@@ -11,6 +11,7 @@ import 'package:tutoring/views/auth/register_view.dart';
 import 'package:tutoring/views/auth/role_selection_view.dart';
 import 'package:tutoring/views/home/ad_detail.dart';
 import 'package:tutoring/views/home/home_screen.dart';
+import 'package:tutoring/views/home/post_ad_view.dart';
 import 'package:tutoring/views/profile/profile_completion_view.dart';
 
 void main() async {
@@ -42,6 +43,7 @@ class MyApp extends StatelessWidget {
             name: Routes.profileCompletion,
             page: () => ProfileCompletionView()),
         GetPage(name: Routes.adDetail, page: () => AdDetail()),
+        GetPage(name: Routes.postAd, page: () => PostAdView()),
       ],
     );
   }
