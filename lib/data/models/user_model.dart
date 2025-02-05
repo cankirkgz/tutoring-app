@@ -12,6 +12,7 @@ class UserModel {
   final DateTime? birthDate;
   final String? bio;
   final num? rating;
+  final String? gender;
 
   UserModel({
     required this.uid,
@@ -25,6 +26,7 @@ class UserModel {
     this.birthDate,
     this.bio,
     this.rating,
+    this.gender,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json, String uid) {
@@ -42,6 +44,7 @@ class UserModel {
           : null,
       bio: json['bio'],
       rating: json['rating'],
+      gender: json['gender'],
     );
   }
 
@@ -58,6 +61,7 @@ class UserModel {
       'birthDate': birthDate,
       'bio': bio,
       'rating': rating,
+      'gender': gender,
     };
   }
 
@@ -73,6 +77,7 @@ class UserModel {
     DateTime? birthDate,
     String? bio,
     num? rating,
+    String? gender,
   }) {
     return UserModel(
       uid: uid ?? this.uid,
@@ -86,6 +91,7 @@ class UserModel {
       birthDate: birthDate ?? this.birthDate,
       bio: bio ?? this.bio,
       rating: rating ?? this.rating,
+      gender: gender ?? this.gender,
     );
   }
 }
