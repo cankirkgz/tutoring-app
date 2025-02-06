@@ -10,7 +10,7 @@ import 'package:tutoring/views/auth/login_view.dart';
 import 'package:tutoring/views/auth/onboarding_view.dart';
 import 'package:tutoring/views/auth/register_view.dart';
 import 'package:tutoring/views/auth/role_selection_view.dart';
-import 'package:tutoring/views/home/ad_detail.dart';
+import 'package:tutoring/views/home/ad_detail_view.dart';
 import 'package:tutoring/views/home/home_screen.dart';
 import 'package:tutoring/views/home/post_ad_view.dart';
 import 'package:tutoring/views/profile/profile_completion_view.dart';
@@ -18,7 +18,7 @@ import 'package:tutoring/views/profile/profile_completion_view.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-  Get.put(AuthController()); // AuthController başlatılıyor
+  Get.put(AuthController());
   Get.put(AdsController());
 
   runApp(MyApp());
@@ -44,7 +44,6 @@ class MyApp extends StatelessWidget {
         GetPage(
             name: Routes.profileCompletion,
             page: () => ProfileCompletionView()),
-        GetPage(name: Routes.adDetail, page: () => AdDetail()),
         GetPage(name: Routes.postAd, page: () => PostAdView()),
       ],
     );

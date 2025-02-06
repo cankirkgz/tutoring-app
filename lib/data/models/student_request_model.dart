@@ -9,7 +9,7 @@ class StudentRequestModel {
   final String city;
   final String district;
   final DateTime createdAt;
-  final List<String>? images; // Opsiyonel fotoğraflar listesi
+  final List<String>? images;
   final int budget;
 
   StudentRequestModel({
