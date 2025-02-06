@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shimmer/shimmer.dart';
-import 'package:tutoring/config/routes.dart';
 import 'package:tutoring/controllers/ads_controller.dart';
 import 'package:tutoring/controllers/auth_controller.dart';
+import 'package:tutoring/views/home/ad_detail_view.dart';
 import 'package:tutoring/views/home/filter_screen.dart';
 import 'package:tutoring/views/home/post_ad_view.dart';
 import 'package:tutoring/views/widgets/ad_card.dart';
@@ -72,7 +72,7 @@ class HomeScreen extends StatelessWidget {
             child: adsController.isLoading.value
                 ? _buildShimmerEffect()
                 : adsController.filteredAdsList.isEmpty
-                    ? Center(child: _buildShimmerEffect())
+                    ? Center(child: Text("Hicbir ilan bulunamadi"))
                     : ListView.builder(
                         itemCount: adsController.filteredAdsList.length,
                         itemBuilder: (context, index) {
@@ -80,6 +80,7 @@ class HomeScreen extends StatelessWidget {
                           return AdCard(
                             ad: ad,
                             authController: authController,
+                            onTap: () => Get.to(() => AdDetailView(ad: ad)),
                           );
                         },
                       ),

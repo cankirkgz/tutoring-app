@@ -7,11 +7,13 @@ import 'package:tutoring/data/models/user_model.dart';
 class AdCard extends StatelessWidget {
   final dynamic ad;
   final AuthController authController;
+  final VoidCallback? onTap; // Opsiyonel tıklama geri çağırma fonksiyonu
 
   const AdCard({
     super.key,
     required this.ad,
     required this.authController,
+    this.onTap,
   }) : assert(ad is TeacherAdModel || ad is StudentRequestModel,
             'Only TeacherAdModel or StudentRequestModel accepted');
 
@@ -30,166 +32,169 @@ class AdCard extends StatelessWidget {
         final user = snapshot.data;
         final rating = user?.rating ?? 0.0;
 
-        return Card(
-          elevation: 2,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Başlık ve Tip Etiketi
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        ad.title,
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
+        return InkWell(
+          onTap: onTap, // Kart tıklanıldığında belirtilen fonksiyon çalışır.
+          child: Card(
+            elevation: 2,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Başlık ve Tip Etiketi
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          ad.title,
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                    _buildTypeChip(isTeacherAd),
-                  ],
-                ),
-                const SizedBox(height: 8),
+                      _buildTypeChip(isTeacherAd),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
 
-                // Puan ve Lokasyon
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Chip(
-                      backgroundColor: Colors.amber.shade100,
-                      label: Text(
-                        '${rating.toStringAsFixed(1)}/10',
-                        style: TextStyle(
-                          color: Colors.amber.shade800,
-                          fontWeight: FontWeight.bold,
+                  // Puan ve Lokasyon
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Chip(
+                        backgroundColor: Colors.amber.shade100,
+                        label: Text(
+                          '${rating.toStringAsFixed(1)}/10',
+                          style: TextStyle(
+                            color: Colors.amber.shade800,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
-                    ),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.location_on,
+                            color: Colors.grey.shade600,
+                            size: 18,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${ad.city} - ${ad.district}',
+                            style: TextStyle(
+                              color: Colors.grey.shade600,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Ders/Ücret Bilgisi
+                  if (subject != null || priceInfo != null)
                     Row(
                       children: [
                         Icon(
-                          Icons.location_on,
-                          color: Colors.grey.shade600,
-                          size: 18,
+                          isTeacherAd ? Icons.school : Icons.request_page,
+                          color: Colors.blue.shade800,
+                          size: 20,
                         ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${ad.city} - ${ad.district}',
-                          style: TextStyle(
-                            color: Colors.grey.shade600,
-                            fontSize: 14,
+                        const SizedBox(width: 8),
+                        if (subject != null)
+                          Text(
+                            subject,
+                            style: TextStyle(
+                              color: Colors.blue.shade800,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            ),
                           ),
-                        ),
+                        if (priceInfo != null)
+                          Text(
+                            ' • $priceInfo',
+                            style: TextStyle(
+                              color: Colors.green.shade800,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            ),
+                          ),
                       ],
                     ),
-                  ],
-                ),
-                const SizedBox(height: 12),
+                  const SizedBox(height: 12),
 
-                // Ders/Ücret Bilgisi
-                if (subject != null || priceInfo != null)
-                  Row(
-                    children: [
-                      Icon(
-                        isTeacherAd ? Icons.school : Icons.request_page,
-                        color: Colors.blue.shade800,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      if (subject != null)
-                        Text(
-                          subject,
-                          style: TextStyle(
-                            color: Colors.blue.shade800,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
-                          ),
-                        ),
-                      if (priceInfo != null)
-                        Text(
-                          ' • $priceInfo',
-                          style: TextStyle(
-                            color: Colors.green.shade800,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
-                          ),
-                        ),
-                    ],
-                  ),
-                const SizedBox(height: 12),
-
-                // Açıklama
-                if (description != null && description.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: Text(
-                      description,
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: Colors.grey.shade800,
-                        fontSize: 15,
-                        height: 1.4,
-                      ),
-                    ),
-                  ),
-
-                // Fotoğraflar
-                if (images != null && images.isNotEmpty)
-                  SizedBox(
-                    height: 150,
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: images.length,
-                      itemBuilder: (context, index) => Padding(
-                        padding: EdgeInsets.only(right: 8),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.network(
-                            images[index],
-                            width: 200,
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-
-                // İlan Sahibi ve Tarih
-                Padding(
-                  padding: const EdgeInsets.only(top: 12),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        '${user?.firstName ?? 'Bilinmeyen'} ${user?.lastName ?? ''}',
+                  // Açıklama
+                  if (description != null && description.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Text(
+                        description,
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          color: Colors.grey.shade600,
-                          fontStyle: FontStyle.italic,
+                          color: Colors.grey.shade800,
+                          fontSize: 15,
+                          height: 1.4,
                         ),
                       ),
-                      if (ad.createdAt != null)
+                    ),
+
+                  // Fotoğraflar
+                  if (images != null && images.isNotEmpty)
+                    SizedBox(
+                      height: 150,
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: images.length,
+                        itemBuilder: (context, index) => Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.network(
+                              images[index],
+                              width: 200,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+
+                  // İlan Sahibi ve Tarih
+                  Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
                         Text(
-                          _formatDate(ad.createdAt!),
+                          '${user?.firstName ?? 'Bilinmeyen'} ${user?.lastName ?? ''}',
                           style: TextStyle(
                             color: Colors.grey.shade600,
-                            fontSize: 12,
+                            fontStyle: FontStyle.italic,
                           ),
                         ),
-                    ],
+                        if (ad.createdAt != null)
+                          Text(
+                            _formatDate(ad.createdAt!),
+                            style: TextStyle(
+                              color: Colors.grey.shade600,
+                              fontSize: 12,
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         );
