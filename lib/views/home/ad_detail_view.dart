@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:tutoring/controllers/auth_controller.dart';
-import 'package:tutoring/data/models/teacher_ad_model.dart';
+import 'package:tutoring/controllers/messages_controller.dart';
 import 'package:tutoring/data/models/student_request_model.dart';
+import 'package:tutoring/data/models/teacher_ad_model.dart';
 import 'package:tutoring/data/models/user_model.dart';
+import 'package:tutoring/views/home/chat_screen.dart';
 import 'package:tutoring/views/widgets/custom_button.dart';
 
 class AdDetailView extends StatelessWidget {
@@ -17,6 +19,7 @@ class AdDetailView extends StatelessWidget {
   Widget build(BuildContext context) {
     final isTeacherAd = ad is TeacherAdModel;
     final authController = Get.find<AuthController>();
+    final messagesController = Get.put(MessagesController());
 
     return Scaffold(
       appBar: AppBar(
@@ -72,10 +75,37 @@ class AdDetailView extends StatelessWidget {
                 if (ad.images != null && ad.images!.isNotEmpty)
                   _buildImageGallery(),
                 const SizedBox(height: 24),
-                _buildActionButton(),
+                _buildActionButton(messagesController, user.uid),
               ],
             ),
           );
+        },
+      ),
+    );
+  }
+
+  Widget _buildActionButton(
+      MessagesController messagesController, String receiverId) {
+    return SizedBox(
+      width: double.infinity,
+      child: CustomButton(
+        text: 'Mesaj Gönder',
+        backgroundColor: Colors.green.shade600,
+        textColor: Colors.white,
+        onPressed: () async {
+          final existingChatId =
+              await messagesController.getExistingChatId(receiverId);
+          if (existingChatId != null) {
+            Get.to(() =>
+                ChatScreen(chatId: existingChatId, receiverId: receiverId));
+          } else {
+            final chatId = await messagesController.startNewChat(receiverId);
+            if (chatId != null) {
+              Get.to(() => ChatScreen(chatId: chatId, receiverId: receiverId));
+            } else {
+              Get.snackbar('Hata', 'Sohbet başlatılamadı.');
+            }
+          }
         },
       ),
     );
@@ -318,17 +348,6 @@ class AdDetailView extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildActionButton() {
-    return SizedBox(
-      width: double.infinity,
-      child: CustomButton(
-          text: 'Mesaj Gönder',
-          backgroundColor: Colors.green.shade600,
-          textColor: Colors.white,
-          onPressed: () {}),
     );
   }
 

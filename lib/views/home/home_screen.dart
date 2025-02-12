@@ -1,26 +1,30 @@
+// HomeScreen.dart
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shimmer/shimmer.dart';
-import 'package:tutoring/controllers/ads_controller.dart';
 import 'package:tutoring/controllers/auth_controller.dart';
+import 'package:tutoring/controllers/ads_controller.dart';
+import 'package:tutoring/controllers/messages_controller.dart';
 import 'package:tutoring/views/home/ad_detail_view.dart';
 import 'package:tutoring/views/home/filter_screen.dart';
+import 'package:tutoring/views/home/messages_list_view.dart';
 import 'package:tutoring/views/home/post_ad_view.dart';
 import 'package:tutoring/views/widgets/ad_card.dart';
+import 'package:tutoring/data/models/chat_model.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // **Controller'ları GetX üzerinden al**
     final authController = Get.find<AuthController>();
     final adsController = Get.put(AdsController());
+    final messagesController = Get.find<MessagesController>();
 
     return Scaffold(
       appBar: AppBar(
         title: Obx(() {
-          // **Kullanıcı adı veya hoş geldin mesajı**
           return Text(
             authController.user != null
                 ? "Hoş Geldin, ${authController.user!.firstName}!"
@@ -37,6 +41,54 @@ class HomeScreen extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.add, color: Colors.white),
             onPressed: () => Get.to(() => PostAdView()),
+          ),
+          // Mesaj ikonuna badge ekliyoruz:
+          // HomeScreen.dart - AppBar içindeki mesaj ikonu kısmı
+          StreamBuilder<List<ChatModel>>(
+            stream: messagesController.getChats(),
+            builder: (context, snapshot) {
+              int totalUnread = 0;
+              if (snapshot.hasData) {
+                totalUnread = snapshot.data!.fold(0, (sum, chat) {
+                  if (chat.lastMessageSenderId != authController.user!.uid) {
+                    return sum + chat.unreadMessagesCount;
+                  }
+                  return sum;
+                });
+              }
+              return Stack(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.message, color: Colors.white),
+                    onPressed: () => Get.to(() => MessagesListView()),
+                  ),
+                  if (totalUnread > 0)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 20,
+                          minHeight: 20,
+                        ),
+                        child: Text(
+                          totalUnread.toString(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
           ),
           PopupMenuButton<String>(
             onSelected: (value) {
@@ -60,12 +112,11 @@ class HomeScreen extends StatelessWidget {
           ),
         ],
       ),
-      // Body kısmını güncelleyin
       body: Obx(
         () {
           return RefreshIndicator(
             onRefresh: () async {
-              adsController.isLoading.value = true; // Yükleme başladı
+              adsController.isLoading.value = true;
               await Future.delayed(const Duration(seconds: 2));
               await adsController.fetchAdsBasedOnRole();
             },
@@ -90,10 +141,9 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  // Shimmer efekti widget'ı
   Widget _buildShimmerEffect() {
     return ListView.builder(
-      itemCount: 10, // Örnek olarak 10 shimmer efekti göster
+      itemCount: 10,
       itemBuilder: (context, index) {
         return Shimmer.fromColors(
           baseColor: Colors.grey[300]!,
