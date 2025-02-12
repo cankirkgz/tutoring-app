@@ -4,14 +4,16 @@ import 'package:get/get.dart';
 import 'package:tutoring/config/routes.dart';
 import 'package:tutoring/controllers/ads_controller.dart';
 import 'package:tutoring/controllers/auth_controller.dart';
+import 'package:tutoring/controllers/messages_controller.dart';
 import 'package:tutoring/views/auth/auth_wrapper.dart';
 import 'package:tutoring/views/auth/forgot_password_view.dart';
 import 'package:tutoring/views/auth/login_view.dart';
 import 'package:tutoring/views/auth/onboarding_view.dart';
 import 'package:tutoring/views/auth/register_view.dart';
 import 'package:tutoring/views/auth/role_selection_view.dart';
-import 'package:tutoring/views/home/ad_detail_view.dart';
+import 'package:tutoring/views/home/chat_screen.dart';
 import 'package:tutoring/views/home/home_screen.dart';
+import 'package:tutoring/views/home/messages_list_view.dart';
 import 'package:tutoring/views/home/post_ad_view.dart';
 import 'package:tutoring/views/profile/profile_completion_view.dart';
 
@@ -20,6 +22,7 @@ void main() async {
   await Firebase.initializeApp();
   Get.put(AuthController());
   Get.put(AdsController());
+  Get.put(MessagesController());
 
   runApp(MyApp());
 }
@@ -33,7 +36,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: AuthWrapper(), // Dinamik yönlendirme için AuthWrapper kullanılıyor
+      home: AuthWrapper(),
       getPages: [
         GetPage(name: Routes.onboarding, page: () => OnboardingView()),
         GetPage(name: Routes.login, page: () => LoginScreen()),
@@ -45,6 +48,10 @@ class MyApp extends StatelessWidget {
             name: Routes.profileCompletion,
             page: () => ProfileCompletionView()),
         GetPage(name: Routes.postAd, page: () => PostAdView()),
+        GetPage(name: Routes.messages, page: () => MessagesListView()),
+        GetPage(
+            name: Routes.chat,
+            page: () => ChatScreen(chatId: '', receiverId: '')),
       ],
     );
   }

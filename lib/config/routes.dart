@@ -9,4 +9,6 @@ class Routes {
   static const home = "/home";
   static const adDetail = "/ad-detail";
   static const postAd = "/post-ad";
+  static const String messages = '/messages';
+  static const String chat = '/chat';
 }
