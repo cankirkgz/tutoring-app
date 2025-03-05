@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:get/get.dart';
+import 'package:tutoring/core/services/notification_service.dart';
 import 'package:tutoring/data/models/chat_model.dart';
 import 'package:tutoring/data/models/message_model.dart';
 import 'package:tutoring/controllers/auth_controller.dart';
@@ -40,7 +42,10 @@ class MessagesController extends GetxController {
 
   // Mesaj gönder
   Future<void> sendMessage(
-      String chatId, String content, String receiverId) async {
+    String chatId,
+    String content,
+    String receiverId,
+  ) async {
     final userId = authController.user!.uid;
     final message = MessageModel(
       id: _firestore.collection('messages').doc().id,
@@ -54,21 +59,28 @@ class MessagesController extends GetxController {
       isEdited: false,
     );
 
+    print(
+        "🟢 Mesaj gönderme işlemi başladı. Chat ID: $chatId, Alıcı ID: $receiverId");
+
     try {
-      // Mesajı Firestore'a kaydet
+      // 1) Mesajı Firestore'a kaydet
+      print("🔵 Mesaj Firestore'a kaydediliyor...");
       await _firestore
           .collection('chats')
           .doc(chatId)
           .collection('messages')
           .add(message.toJson());
+      print("🟢 Mesaj Firestore'a başarıyla kaydedildi.");
 
-      // SADECE ALICI İÇİN OKUNMAMIŞ SAYACINI ARTIR
+      // 2) Okunmamış mesaj sayacı güncelle
+      print("🔵 Okunmamış mesaj sayacı güncelleniyor...");
       await _firestore.collection('chats').doc(chatId).update({
         'lastMessage': content,
         'lastMessageTime': message.timestamp,
         'lastMessageSenderId': userId,
         'unreadMessagesCount': FieldValue.increment(1),
       });
+      print("🟢 Okunmamış mesaj sayacı başarıyla güncellendi.");
     } catch (e) {
       print("❌ Mesaj gönderilirken hata oluştu: $e");
       Get.snackbar('Hata', 'Mesaj gönderilirken bir hata oluştu: $e');
@@ -77,14 +89,10 @@ class MessagesController extends GetxController {
 
   Future<String?> getLastMessageSenderId(String chatId) async {
     try {
-      // Sohbet dokümanını getiriyoruz
       DocumentSnapshot doc =
           await _firestore.collection('chats').doc(chatId).get();
-
       if (doc.exists) {
-        // Dokümandan veriyi Map olarak alıyoruz
         Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-        // lastMessageSenderId alanını döndürüyoruz
         return data['lastMessageSenderId'] as String?;
       } else {
         return null;
@@ -193,7 +201,6 @@ class MessagesController extends GetxController {
     WriteBatch batch = _firestore.batch();
 
     try {
-      // Belirtilen chatId altında, alıcı mevcut kullanıcı olan ve henüz okunmamış mesajları getiriyoruz.
       QuerySnapshot snapshot = await _firestore
           .collection('chats')
           .doc(chatId)
@@ -206,7 +213,6 @@ class MessagesController extends GetxController {
         batch.update(doc.reference, {'isRead': true});
       }
 
-      // Ayrıca sohbet dokümanındaki okunmamış mesaj sayısını sıfırlıyoruz.
       DocumentReference chatRef = _firestore.collection('chats').doc(chatId);
       batch.update(chatRef, {'unreadMessagesCount': 0});
 

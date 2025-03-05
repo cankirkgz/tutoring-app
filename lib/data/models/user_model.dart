@@ -4,7 +4,7 @@ class UserModel {
   final String uid;
   final String email;
   final String phone;
-  final String? role;
+  final String? role; // "teacher" veya "student"
   final DateTime createdAt;
   final String? firstName;
   final String? lastName;
@@ -13,6 +13,10 @@ class UserModel {
   final String? bio;
   final num? rating;
   final String? gender;
+  final String? fcmToken;
+  final List<String>? allStudents; // Öğretmenin tüm zamanlardaki öğrencileri
+  final List<String>? currentStudents; // Öğretmenin güncel öğrencileri
+  final List<String>? teachers; // Öğrencinin güncel çalıştığı öğretmenler
 
   UserModel({
     required this.uid,
@@ -27,6 +31,10 @@ class UserModel {
     this.bio,
     this.rating,
     this.gender,
+    this.fcmToken,
+    this.allStudents,
+    this.currentStudents,
+    this.teachers,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json, String uid) {
@@ -45,6 +53,15 @@ class UserModel {
       bio: json['bio'],
       rating: json['rating'],
       gender: json['gender'],
+      fcmToken: json['fcmToken'],
+      allStudents: json['allStudents'] != null
+          ? List<String>.from(json['allStudents'])
+          : [],
+      currentStudents: json['currentStudents'] != null
+          ? List<String>.from(json['currentStudents'])
+          : [],
+      teachers:
+          json['teachers'] != null ? List<String>.from(json['teachers']) : [],
     );
   }
 
@@ -62,6 +79,10 @@ class UserModel {
       'bio': bio,
       'rating': rating,
       'gender': gender,
+      'fcmToken': fcmToken,
+      'allStudents': allStudents ?? [],
+      'currentStudents': currentStudents ?? [],
+      'teachers': teachers ?? [],
     };
   }
 
@@ -78,6 +99,10 @@ class UserModel {
     String? bio,
     num? rating,
     String? gender,
+    String? fcmToken,
+    List<String>? allStudents,
+    List<String>? currentStudents,
+    List<String>? teachers,
   }) {
     return UserModel(
       uid: uid ?? this.uid,
@@ -92,6 +117,10 @@ class UserModel {
       bio: bio ?? this.bio,
       rating: rating ?? this.rating,
       gender: gender ?? this.gender,
+      fcmToken: fcmToken ?? this.fcmToken,
+      allStudents: allStudents ?? this.allStudents,
+      currentStudents: currentStudents ?? this.currentStudents,
+      teachers: teachers ?? this.teachers,
     );
   }
 }

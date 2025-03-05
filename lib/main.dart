@@ -1,10 +1,12 @@
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:tutoring/config/routes.dart';
 import 'package:tutoring/controllers/ads_controller.dart';
 import 'package:tutoring/controllers/auth_controller.dart';
 import 'package:tutoring/controllers/messages_controller.dart';
+import 'package:tutoring/core/services/notification_service.dart';
 import 'package:tutoring/views/auth/auth_wrapper.dart';
 import 'package:tutoring/views/auth/forgot_password_view.dart';
 import 'package:tutoring/views/auth/login_view.dart';
@@ -16,18 +18,28 @@ import 'package:tutoring/views/home/home_screen.dart';
 import 'package:tutoring/views/home/messages_list_view.dart';
 import 'package:tutoring/views/home/post_ad_view.dart';
 import 'package:tutoring/views/profile/profile_completion_view.dart';
+import 'package:tutoring/views/profile/profile_view.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
+  await NotificationService.instance.initNotification();
+
+  print("🔵 AuthController başlatılıyor...");
   Get.put(AuthController());
   Get.put(AdsController());
   Get.put(MessagesController());
 
-  runApp(MyApp());
+  print("🔵 FCM token kontrol ediliyor...");
+  await Get.find<AuthController>().checkAndUpdateFCMToken();
+
+  print("🟢 Uygulama başlatıldı.");
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({Key? key}) : super(key: key);
+
   @override
   Widget build(BuildContext context) {
     return GetMaterialApp(
@@ -52,6 +64,11 @@ class MyApp extends StatelessWidget {
         GetPage(
             name: Routes.chat,
             page: () => ChatScreen(chatId: '', receiverId: '')),
+        GetPage(
+            name: Routes.profile,
+            page: () => ProfileView(
+                  userId: '',
+                )),
       ],
     );
   }

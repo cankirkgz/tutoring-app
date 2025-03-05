@@ -13,13 +13,41 @@ import 'package:tutoring/views/home/post_ad_view.dart';
 import 'package:tutoring/views/widgets/ad_card.dart';
 import 'package:tutoring/data/models/chat_model.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  bool _isInitialLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    // İlk yüklemede 3 saniye shimmer göster
+    _loadInitialData();
+  }
+
+  Future<void> _loadInitialData() async {
+    final adsController = Get.find<AdsController>();
+    // Verileri getir
+    adsController.fetchAdsBasedOnRole();
+
+    // 3 saniye bekle
+    await Future.delayed(const Duration(seconds: 6));
+
+    // İlk yükleme bitti
+    setState(() {
+      _isInitialLoading = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final authController = Get.find<AuthController>();
-    final adsController = Get.put(AdsController());
+    final adsController = Get.find<AdsController>();
     final messagesController = Get.find<MessagesController>();
 
     return Scaffold(
@@ -112,32 +140,35 @@ class HomeScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: Obx(
-        () {
-          return RefreshIndicator(
-            onRefresh: () async {
-              adsController.isLoading.value = true;
-              await Future.delayed(const Duration(seconds: 2));
-              await adsController.fetchAdsBasedOnRole();
-            },
-            child: adsController.isLoading.value
-                ? _buildShimmerEffect()
-                : adsController.filteredAdsList.isEmpty
-                    ? Center(child: Text("Hicbir ilan bulunamadi"))
-                    : ListView.builder(
-                        itemCount: adsController.filteredAdsList.length,
-                        itemBuilder: (context, index) {
-                          final ad = adsController.filteredAdsList[index];
-                          return AdCard(
-                            ad: ad,
-                            authController: authController,
-                            onTap: () => Get.to(() => AdDetailView(ad: ad)),
-                          );
-                        },
-                      ),
-          );
-        },
-      ),
+      body: _isInitialLoading
+          ? _buildShimmerEffect() // İlk 3 saniye shimmer göster
+          : Obx(() {
+              // 3 saniye sonra normal akış
+              if (adsController.isLoading.value) {
+                return _buildShimmerEffect();
+              } else if (adsController.filteredAdsList.isEmpty) {
+                return Center(child: Text("Hiçbir ilan bulunamadı"));
+              } else {
+                return RefreshIndicator(
+                  onRefresh: () async {
+                    adsController.isLoading.value = true;
+                    await Future.delayed(const Duration(seconds: 2));
+                    await adsController.fetchAdsBasedOnRole();
+                  },
+                  child: ListView.builder(
+                    itemCount: adsController.filteredAdsList.length,
+                    itemBuilder: (context, index) {
+                      final ad = adsController.filteredAdsList[index];
+                      return AdCard(
+                        ad: ad,
+                        authController: authController,
+                        onTap: () => Get.to(() => AdDetailView(ad: ad)),
+                      );
+                    },
+                  ),
+                );
+              }
+            }),
     );
   }
 

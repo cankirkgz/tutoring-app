@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:tutoring/constants/subjects.dart';
 import 'package:tutoring/controllers/ads_controller.dart';
 import 'package:tutoring/controllers/auth_controller.dart';
 import 'package:tutoring/views/widgets/city_picker.dart';

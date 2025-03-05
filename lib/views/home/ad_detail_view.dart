@@ -6,6 +6,7 @@ import 'package:tutoring/data/models/student_request_model.dart';
 import 'package:tutoring/data/models/teacher_ad_model.dart';
 import 'package:tutoring/data/models/user_model.dart';
 import 'package:tutoring/views/home/chat_screen.dart';
+import 'package:tutoring/views/profile/profile_view.dart';
 import 'package:tutoring/views/widgets/custom_button.dart';
 
 class AdDetailView extends StatelessWidget {
@@ -161,81 +162,88 @@ class AdDetailView extends StatelessWidget {
   }
 
   Widget _buildUserInfoSection(UserModel user, double rating, dynamic ad) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.green.shade100, width: 2),
+    return InkWell(
+      onTap: () {
+        // Profil sayfasına yönlendirme
+        Get.to(() => ProfileView(userId: user.uid));
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
             ),
-            child: ClipOval(
-              child: Icon(
-                Icons.person,
-                size: 32,
-                color: Colors.green.shade600,
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.green.shade100, width: 2),
+              ),
+              child: ClipOval(
+                child: Icon(
+                  Icons.person,
+                  size: 32,
+                  color: Colors.green.shade600,
+                ),
               ),
             ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '${user.firstName} ${user.lastName}',
-                  style: const TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w600,
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${user.firstName} ${user.lastName}',
+                    style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Icon(Icons.location_on_outlined,
-                        size: 16, color: Colors.grey.shade600),
-                    const SizedBox(width: 4),
-                    Text(
-                      '${ad.city} - ${ad.district}',
-                      style: TextStyle(
-                        color: Colors.grey.shade600,
-                        fontSize: 14,
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(Icons.location_on_outlined,
+                          size: 16, color: Colors.grey.shade600),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${ad.city} - ${ad.district}',
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontSize: 14,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    Icon(Icons.star, size: 16, color: Colors.amber.shade700),
-                    const SizedBox(width: 4),
-                    Text(
-                      '${rating.toStringAsFixed(1)}/10',
-                      style: TextStyle(
-                        color: Colors.amber.shade800,
-                        fontWeight: FontWeight.w600,
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Icon(Icons.star, size: 16, color: Colors.amber.shade700),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${rating.toStringAsFixed(1)}/10',
+                        style: TextStyle(
+                          color: Colors.amber.shade800,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

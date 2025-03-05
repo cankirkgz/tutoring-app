@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:tutoring/controllers/messages_controller.dart';
+import 'package:tutoring/core/services/notification_service.dart';
 import 'package:tutoring/data/models/message_model.dart';
 import 'package:tutoring/controllers/auth_controller.dart';
 
@@ -31,12 +32,7 @@ class _ChatScreenState extends State<ChatScreen> {
   void _checkAndMarkMessagesAsRead() async {
     final String? lastSenderId =
         await messagesController.getLastMessageSenderId(widget.chatId);
-    print("LALALALA ${authController.user!.uid} $lastSenderId");
-
-    // Mevcut kullanıcının ID'si, son mesajı gönderen ID ile farklıysa (yani kullanıcı alıcıysa)
     if (authController.user!.uid != lastSenderId) {
-      print("LALALALA2");
-      // Ekran render edildikten sonra mesajları okundu olarak işaretle.
       WidgetsBinding.instance.addPostFrameCallback((_) {
         messagesController.markMessagesAsRead(widget.chatId);
       });
@@ -85,7 +81,6 @@ class _ChatScreenState extends State<ChatScreen> {
               if (value == 'profile') {
                 // Profil ekranına yönlendirme
               } else if (value == 'notification') {
-                // Bildirim ekranına yönlendirme veya örnek snackbar
                 Get.snackbar('Bildirim', 'Bu özellik henüz aktif değil.',
                     snackPosition: SnackPosition.BOTTOM);
               }
@@ -108,12 +103,21 @@ class _ChatScreenState extends State<ChatScreen> {
           Expanded(
             child: StreamBuilder<List<MessageModel>>(
               stream: messagesController.getMessages(widget.chatId),
+              initialData: const [],
               builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                } else if (snapshot.hasError) {
+                // Eğer hata varsa hata mesajı göster.
+                if (snapshot.hasError) {
                   return Center(child: Text('Hata: ${snapshot.error}'));
-                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                }
+
+                // İlk yükleme sırasında (veri yoksa) progress indicator veya placeholder gösterebilirsiniz.
+                if (snapshot.connectionState == ConnectionState.waiting &&
+                    snapshot.data!.isEmpty) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                // Eğer veri gelmiş fakat boşsa, placeholder mesajı göster.
+                if (snapshot.data!.isEmpty) {
                   return const Center(
                     child: Text(
                       'Henüz mesaj yok. İlk mesajı göndererek sohbeti başlatın!',
@@ -124,7 +128,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
                 final messages = snapshot.data!;
 
-                // Mesajlar yüklendikten sonra listenin en sonuna kaydırıyoruz.
+                // Listeyi en son mesaja kaydırma işlemi
                 WidgetsBinding.instance.addPostFrameCallback((_) {
                   if (_scrollController.hasClients) {
                     _scrollController.jumpTo(
@@ -140,7 +144,6 @@ class _ChatScreenState extends State<ChatScreen> {
                   itemBuilder: (context, index) {
                     final message = messages[index];
                     final isMe = message.senderId == authController.user!.uid;
-
                     return Align(
                       alignment:
                           isMe ? Alignment.centerRight : Alignment.centerLeft,
@@ -158,8 +161,7 @@ class _ChatScreenState extends State<ChatScreen> {
                             Text(
                               message.content,
                               style: TextStyle(
-                                color: isMe ? Colors.white : Colors.black,
-                              ),
+                                  color: isMe ? Colors.white : Colors.black),
                             ),
                             const SizedBox(height: 4.0),
                             Text(
@@ -192,8 +194,10 @@ class _ChatScreenState extends State<ChatScreen> {
                       children: [
                         IconButton(
                           icon: const Icon(Icons.emoji_emotions_outlined),
-                          onPressed: () {
-                            // Emoji seçme işlemi
+                          onPressed: () async {
+                            final String? token =
+                                await NotificationService.instance.getToken();
+                            print('LALALALA $token');
                           },
                         ),
                         Expanded(
@@ -217,25 +221,50 @@ class _ChatScreenState extends State<ChatScreen> {
                 ),
                 const SizedBox(width: 8.0),
                 Container(
-                  decoration: const BoxDecoration(
-                    color: Colors.green,
-                    shape: BoxShape.circle,
-                  ),
-                  child: IconButton(
-                    icon: const Icon(Icons.send, color: Colors.white),
-                    onPressed: () async {
-                      final message = _messageController.text.trim();
-                      if (message.isNotEmpty) {
-                        await messagesController.sendMessage(
-                          widget.chatId,
-                          message,
-                          widget.receiverId,
-                        );
-                        _messageController.clear();
-                      }
-                    },
-                  ),
-                ),
+                    decoration: const BoxDecoration(
+                      color: Colors.green,
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.send, color: Colors.white),
+                      onPressed: () {
+                        final message = _messageController.text.trim();
+                        if (message.isNotEmpty) {
+                          // Immediately clear the input field and hide keyboard
+                          _messageController.clear();
+                          FocusScope.of(context).unfocus();
+
+                          // Get user info synchronously
+                          final user = authController.user!;
+                          final userName = '${user.firstName} ${user.lastName}';
+
+                          // Send message in background
+                          messagesController.sendMessage(
+                            widget.chatId,
+                            message,
+                            widget.receiverId,
+                          );
+
+                          // Send notification in background
+                          authController
+                              .getFcmTokenByUserId(widget.receiverId)
+                              .then((token) {
+                            if (token != null) {
+                              NotificationService.instance
+                                  .sendTokenNotification(
+                                token,
+                                userName,
+                                message,
+                                widget.chatId,
+                                widget.receiverId,
+                              );
+                            }
+                          }).catchError((error) {
+                            print('Notification error: $error');
+                          });
+                        }
+                      },
+                    )),
               ],
             ),
           ),

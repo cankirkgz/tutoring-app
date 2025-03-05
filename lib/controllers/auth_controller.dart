@@ -1,3 +1,4 @@
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -9,6 +10,7 @@ import 'package:tutoring/data/models/user_model.dart';
 class AuthController extends GetxController {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
 
   final Rx<UserModel?> _user = Rx<UserModel?>(null);
   UserModel? get user => _user.value;
@@ -23,11 +25,16 @@ class AuthController extends GetxController {
       if (firebaseUser != null) {
         // Firebase kullanıcısı varsa, Firestore'dan kullanıcı verilerini çek
         await _fetchUserData(firebaseUser.uid);
+        // Token kontrolü yap ve güncelle
+        await checkAndUpdateFCMToken();
       } else {
         // Kullanıcı oturumu kapalıysa null yap
         _user.value = null;
       }
     });
+
+    // Token değişikliklerini dinle
+    _setupTokenRefreshListener();
   }
 
   // Firestore'dan kullanıcı verilerini çek
@@ -55,6 +62,7 @@ class AuthController extends GetxController {
         password: password,
       );
       await _fetchUserData(userCredential.user!.uid);
+      await checkAndUpdateFCMToken(); // Token kontrolü yap ve güncelle
       Get.offAllNamed(Routes.home);
     } on FirebaseAuthException catch (e) {
       Get.snackbar(
@@ -123,7 +131,6 @@ class AuthController extends GetxController {
   }
 
   // Kullanıcı Rolünü Kaydet
-
   Future<void> saveUserRole(String role) async {
     try {
       final currentUser = _auth.currentUser;
@@ -161,6 +168,116 @@ class AuthController extends GetxController {
       );
     } catch (e) {
       Get.snackbar('Hata', 'Profil güncellenemedi: ${e.toString()}');
+    }
+  }
+
+  // Token'ı kontrol et ve güncelle
+  Future<void> checkAndUpdateFCMToken() async {
+    print("🔵 FCM token kontrol ediliyor ve güncelleniyor...");
+    final currentUser = _auth.currentUser;
+    if (currentUser != null) {
+      var token = await _firebaseMessaging.getToken();
+      if (token != null) {
+        print("🟢 Yeni FCM token alındı: $token");
+        await saveFCMToken(token); // Yeni token'ı kaydet
+        print("🟢 FCM token Firestore'a kaydedildi.");
+      } else {
+        print("❌ FCM token alınamadı.");
+      }
+    } else {
+      print("❌ Kullanıcı oturumu açık değil, token güncellenemedi.");
+    }
+  }
+
+  // FCM Token Kaydet
+  Future<String?> saveFCMToken(String token) async {
+    print("🔵 FCM token Firestore'a kaydediliyor...");
+    try {
+      final currentUser = _auth.currentUser;
+      if (currentUser != null) {
+        await _firestore.collection('users').doc(currentUser.uid).update({
+          'fcmToken': token,
+        });
+        print("🟢 FCM token Firestore'a başarıyla kaydedildi.");
+        return token;
+      }
+    } catch (e) {
+      print("❌ FCM Token kaydedilirken hata oluştu: $e");
+    }
+    return null;
+  }
+
+  Future<String?> getFcmTokenByUserId(String userId) async {
+    try {
+      final docSnapshot =
+          await _firestore.collection('users').doc(userId).get();
+      if (docSnapshot.exists) {
+        final data = docSnapshot.data();
+        if (data != null && data.containsKey('fcmToken')) {
+          return data['fcmToken'] as String?;
+        }
+      }
+    } catch (e) {
+      print("FCM Token verisi alınırken hata oluştu: $e");
+    }
+    return null;
+  }
+
+  // Token değişikliklerini dinle
+  void _setupTokenRefreshListener() {
+    _firebaseMessaging.onTokenRefresh.listen((newToken) async {
+      await saveFCMToken(newToken); // Yeni token'ı kaydet
+    });
+  }
+
+  // 🔹 **Öğrenciyi Öğretmene Ekleme**
+  Future<void> becomeStudent(String teacherId) async {
+    final user = _user.value;
+    if (user == null || user.role != "student") {
+      Get.snackbar("Hata", "Bu işlemi sadece öğrenciler yapabilir!");
+      return;
+    }
+
+    final studentId = user.uid;
+    final teacherRef = _firestore.collection('users').doc(teacherId);
+    final studentRef = _firestore.collection('users').doc(studentId);
+
+    try {
+      await _firestore.runTransaction((transaction) async {
+        final teacherDoc = await transaction.get(teacherRef);
+        final studentDoc = await transaction.get(studentRef);
+
+        if (!teacherDoc.exists || !studentDoc.exists) {
+          throw Exception("Kullanıcı bulunamadı.");
+        }
+
+        final List<String> allStudents =
+            List<String>.from(teacherDoc['allStudents'] ?? []);
+        final List<String> currentStudents =
+            List<String>.from(teacherDoc['currentStudents'] ?? []);
+        final List<String> teachers =
+            List<String>.from(studentDoc['teachers'] ?? []);
+
+        if (!allStudents.contains(studentId)) allStudents.add(studentId);
+        if (!currentStudents.contains(studentId))
+          currentStudents.add(studentId);
+        if (!teachers.contains(teacherId)) teachers.add(teacherId);
+
+        transaction.update(teacherRef, {
+          'allStudents': allStudents,
+          'currentStudents': currentStudents,
+        });
+
+        transaction.update(studentRef, {
+          'teachers': teachers,
+        });
+      });
+
+      Get.snackbar("Başarılı", "Artık bu öğretmenin öğrencisisiniz.",
+          backgroundColor: Colors.green.shade700, colorText: Colors.white);
+    } catch (e) {
+      Get.snackbar("Hata", "Bir hata oluştu: $e",
+          backgroundColor: Colors.red, colorText: Colors.white);
     }
   }
 
