@@ -1,4 +1,4 @@
-// profile_view.dart
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:tutoring/config/routes.dart';
@@ -12,12 +12,27 @@ import 'package:tutoring/views/home/ad_detail_view.dart';
 import 'package:tutoring/views/home/chat_screen.dart';
 import 'package:tutoring/views/widgets/ad_card.dart';
 
-class ProfileView extends StatelessWidget {
+class ProfileView extends StatefulWidget {
   final String userId;
+
+  const ProfileView({super.key, required this.userId});
+
+  @override
+  _ProfileViewState createState() => _ProfileViewState();
+}
+
+class _ProfileViewState extends State<ProfileView> {
   final AuthController authController = Get.find<AuthController>();
   final AdsController adsController = Get.find<AdsController>();
+  bool _isButtonLoading = false;
+  late Future<UserModel?> _futureUser;
 
-  ProfileView({super.key, required this.userId});
+  @override
+  void initState() {
+    super.initState();
+    // Future'ı initState'te alıyoruz, böylece sadece bir defa çekiliyor.
+    _futureUser = authController.getUserById(widget.userId);
+  }
 
   int? _calculateAge(DateTime? birthDate) {
     if (birthDate == null) return null;
@@ -34,19 +49,17 @@ class ProfileView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: FutureBuilder<UserModel?>(
-        future: authController.getUserById(userId),
+        future: _futureUser,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
-
           if (!snapshot.hasData || snapshot.hasError) {
             return const Center(child: Text('Kullanıcı bulunamadı'));
           }
 
           final user = snapshot.data!;
-          final isCurrentUser = authController.user?.uid == userId;
-          final isTeacher = user.role == 'teacher';
+          final isCurrentUser = authController.user?.uid == widget.userId;
           final age = _calculateAge(user.birthDate);
           final rating = user.rating ?? 0;
 
@@ -72,12 +85,12 @@ class ProfileView extends StatelessWidget {
                       onPressed: () async {
                         final messagesController =
                             Get.find<MessagesController>();
-                        final chatId =
-                            await messagesController.getExistingChatId(userId);
+                        final chatId = await messagesController
+                            .getExistingChatId(widget.userId);
                         if (chatId != null) {
                           Get.to(() => ChatScreen(
                                 chatId: chatId,
-                                receiverId: userId,
+                                receiverId: widget.userId,
                               ));
                         }
                       },
@@ -187,56 +200,66 @@ class ProfileView extends StatelessWidget {
   Widget _buildActionButtons(UserModel user) {
     final isCurrentUser = authController.user?.uid == user.uid;
     final isTeacher = user.role == 'teacher';
+    final currentUser = authController.user;
+    final isStudent = currentUser?.role == 'student';
+
+    // Eğer currentUser öğrenci ise, teachers listesinde görüntülenen öğretmenin id'si var mı kontrol ediyoruz.
+    final bool isAlreadyStudent = isStudent && currentUser?.teachers != null
+        ? currentUser!.teachers!.contains(user.uid)
+        : false;
 
     return Row(
       children: [
-        if (isTeacher && !isCurrentUser)
+        if (isTeacher && !isCurrentUser && isStudent)
           Expanded(
             child: ElevatedButton.icon(
-              icon: const Icon(Icons.group_add),
-              label: const Text('Öğrencisi Ol'),
+              icon: _isButtonLoading
+                  ? SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : Icon(
+                      isAlreadyStudent ? Icons.person_remove : Icons.group_add,
+                    ),
+              label: Text(
+                  isAlreadyStudent ? 'Öğrencisi Olmaktan Çık' : 'Öğrencisi Ol'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green.shade600,
+                backgroundColor: isAlreadyStudent
+                    ? Colors.red.shade600
+                    : Colors.green.shade600,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
               ),
-              onPressed: () async {
-                final authController = Get.find<AuthController>();
-                final currentUser = authController.user;
-
-                if (currentUser == null) {
-                  Get.snackbar(
-                    'Hata',
-                    'Bu işlemi yapmak için giriş yapmalısınız.',
-                    backgroundColor: Colors.red[100],
-                  );
-                  return;
-                }
-
-                if (currentUser.role != 'student') {
-                  Get.snackbar(
-                    'Hata',
-                    'Bu işlemi sadece öğrenciler yapabilir.',
-                    backgroundColor: Colors.red[100],
-                  );
-                  return;
-                }
-
-                try {
-                  await authController.becomeStudent(user.uid);
-                  Get.snackbar(
-                    'Başarılı',
-                    'Artık bu öğretmenin öğrencisiniz.',
-                    backgroundColor: Colors.green[100],
-                  );
-                } catch (e) {
-                  Get.snackbar(
-                    'Hata',
-                    'Bir hata oluştu: $e',
-                    backgroundColor: Colors.red[100],
-                  );
-                }
-              },
+              onPressed: _isButtonLoading
+                  ? null
+                  : () async {
+                      setState(() {
+                        _isButtonLoading = true;
+                      });
+                      try {
+                        if (isAlreadyStudent) {
+                          await authController.removeStudent(user.uid);
+                        } else {
+                          await authController.becomeStudent(user.uid);
+                        }
+                        setState(() {
+                          _isButtonLoading = false;
+                        });
+                      } catch (e) {
+                        setState(() {
+                          _isButtonLoading = false;
+                        });
+                        Get.snackbar(
+                          'Hata',
+                          'Bir hata oluştu: $e',
+                          backgroundColor: Colors.red[100],
+                        );
+                      }
+                    },
             ),
           ),
         if (isCurrentUser)
@@ -256,22 +279,62 @@ class ProfileView extends StatelessWidget {
   }
 
   Widget _buildStatistics(UserModel user) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.green.shade50,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _buildStatItem(
-              'Aktif Öğrenci', '${user.currentStudents?.length ?? 0}'),
-          _buildStatItem('Tamamlanan Ders', '32'),
-          _buildStatItem('Deneyim', '2 Yıl'),
-        ],
-      ),
-    );
+    // Eğer profil öğretmen ise, aktif öğrenci sayısını dinamik göstermek için StreamBuilder kullanıyoruz.
+    if (user.role == 'teacher') {
+      return StreamBuilder<DocumentSnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
+            return Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.green.shade50,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Center(child: CircularProgressIndicator()),
+            );
+          }
+          final data = snapshot.data!.data() as Map<String, dynamic>;
+          final teacher = UserModel.fromJson(data, user.uid);
+          return Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.green.shade50,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildStatItem(
+                    'Aktif Öğrenci', '${teacher.currentStudents?.length ?? 0}'),
+                _buildStatItem('Tamamlanan Ders', '32'),
+                _buildStatItem('Deneyim', '2 Yıl'),
+              ],
+            ),
+          );
+        },
+      );
+    } else {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.green.shade50,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _buildStatItem(
+                'Aktif Öğrenci', '${user.currentStudents?.length ?? 0}'),
+            _buildStatItem('Tamamlanan Ders', '32'),
+            _buildStatItem('Deneyim', '2 Yıl'),
+          ],
+        ),
+      );
+    }
   }
 
   Widget _buildStatItem(String title, String value) {

@@ -273,11 +273,74 @@ class AuthController extends GetxController {
         });
       });
 
-      Get.snackbar("Başarılı", "Artık bu öğretmenin öğrencisisiniz.",
-          backgroundColor: Colors.green.shade700, colorText: Colors.white);
+      // Kullanıcı verilerini güncelle: removeStudent metodunda olduğu gibi.
+      await _fetchUserData(user.uid);
+
+      Get.snackbar(
+        "Başarılı",
+        "Artık bu öğretmenin öğrencisisiniz.",
+        backgroundColor: Colors.green.shade700,
+        colorText: Colors.white,
+      );
+    } catch (e) {
+      Get.snackbar(
+        "Hata",
+        "Bir hata oluştu: $e",
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
+  }
+
+  // �� **Öğrenciyi Öğretmenden Çıkarma**
+  Future<void> removeStudent(String teacherId) async {
+    final user = _user.value;
+    if (user == null || user.role != "student") {
+      Get.snackbar("Hata", "Bu işlemi sadece öğrenciler yapabilir!");
+      return;
+    }
+
+    final studentId = user.uid;
+    final teacherRef = _firestore.collection('users').doc(teacherId);
+    final studentRef = _firestore.collection('users').doc(studentId);
+
+    try {
+      await _firestore.runTransaction((transaction) async {
+        final teacherDoc = await transaction.get(teacherRef);
+        final studentDoc = await transaction.get(studentRef);
+
+        if (!teacherDoc.exists || !studentDoc.exists) {
+          throw Exception("Kullanıcı bulunamadı.");
+        }
+
+        // Listeleri güncelle
+        final List<String> currentStudents =
+            List<String>.from(teacherDoc['currentStudents'] ?? []);
+        final List<String> teachers =
+            List<String>.from(studentDoc['teachers'] ?? []);
+
+        // Listelerden çıkar
+        currentStudents.remove(studentId);
+        teachers.remove(teacherId);
+
+        // Firestore'u güncelle
+        transaction.update(teacherRef, {
+          'currentStudents': currentStudents,
+        });
+
+        transaction.update(studentRef, {
+          'teachers': teachers,
+        });
+      });
+
+      // Kullanıcı verilerini yenile
+      await _fetchUserData(user.uid);
+
+      Get.snackbar("Başarılı", "Artık bu öğretmenin öğrencisi değilsiniz.",
+          backgroundColor: Colors.red.shade100, colorText: Colors.red.shade800);
     } catch (e) {
       Get.snackbar("Hata", "Bir hata oluştu: $e",
-          backgroundColor: Colors.red, colorText: Colors.white);
+          backgroundColor: Colors.red.shade100, colorText: Colors.red.shade800);
     }
   }
 
