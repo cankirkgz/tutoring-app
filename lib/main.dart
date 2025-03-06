@@ -23,6 +23,9 @@ import 'package:tutoring/views/profile/profile_view.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await dotenv.load(fileName: ".env");
+
   await Firebase.initializeApp();
   await NotificationService.instance.initNotification();
 
@@ -35,7 +38,6 @@ void main() async {
   await Get.find<AuthController>().checkAndUpdateFCMToken();
 
   print("🟢 Uygulama başlatıldı.");
-  await dotenv.load(fileName: ".env");
   runApp(const MyApp());
 }
 
